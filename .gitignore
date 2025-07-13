@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+.env
+*.log
+.DS_Store
+*.local
+coverage/
+.cache/
+.idea/
+.vscode/
+*.bak
+*.tmp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+netlify.toml

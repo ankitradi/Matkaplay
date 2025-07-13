@@ -1,0 +1,32 @@
+:root {
+  --matka-primary: #18181b;
+  --matka-secondary: #23232a;
+  --matka-gold: #ffe066;
+  --matka-gold-soft: #fff7b2;
+  --matka-red: #e63946;
+  --matka-border: #2d2d34;
+  --matka-card-radius: 1rem;
+  --matka-shadow: 0 4px 24px 0 #0003;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
+  background: var(--matka-primary);
+  color: #fff;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (max-width: 600px) {
+  body {
+    font-size: 1rem;
+  }
+}
+
