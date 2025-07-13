@@ -66,41 +66,61 @@ function AdminGames() {
   const [editGame, setEditGame] = useState({});
   const [newGame, setNewGame] = useState({ name: '', status: 'Active', timing: '' });
 
-  // Load games from localStorage or use default
+  // Load games from Supabase
   useEffect(() => {
-    const g = JSON.parse(localStorage.getItem('matka_admin_games') || 'null');
-    if (g && Array.isArray(g) && g.length > 0) setGames(g);
-    else setGames(DEFAULT_GAMES);
-  }, []);
-
-  // Save to localStorage on change, but only if games is not empty
-  useEffect(() => {
-    if (games && Array.isArray(games) && games.length > 0) {
-      localStorage.setItem('matka_admin_games', JSON.stringify(games));
+    async function fetchGames() {
+      const { supabase } = await import('../supabaseClient');
+      const { data, error } = await supabase.from('games').select('*').order('created_at', { ascending: false });
+      if (!error) setGames(data || []);
+      else setGames([]);
     }
-  }, [games]);
+    fetchGames();
+  }, []);
 
   const handleEdit = idx => {
     setEditingIdx(idx);
     setEditGame(games[idx]);
   };
-  const handleSave = idx => {
-    const updated = [...games];
-    updated[idx] = editGame;
-    setGames(updated);
+  const handleSave = async idx => {
+    const { supabase } = await import('../supabaseClient');
+    const game = games[idx];
+    await supabase.from('games').update({
+      name: editGame.name,
+      status: editGame.status,
+      timing: editGame.timing
+    }).eq('id', game.id);
+    // Refresh games from Supabase
+    const { data } = await supabase.from('games').select('*').order('created_at', { ascending: false });
+    setGames(data || []);
     setEditingIdx(-1);
   };
-  const handleDelete = idx => {
+  const handleDelete = async idx => {
     if (window.confirm('Delete this game?')) {
-      setGames(games.filter((_, i) => i !== idx));
+      const { supabase } = await import('../supabaseClient');
+      const game = games[idx];
+      await supabase.from('games').delete().eq('id', game.id);
+      // Refresh games from Supabase
+      const { data } = await supabase.from('games').select('*').order('created_at', { ascending: false });
+      setGames(data || []);
     }
   };
-  const handleAdd = e => {
+  const handleAdd = async e => {
     e.preventDefault();
     if (!newGame.name.trim() || !newGame.timing.trim()) return;
-    setGames([...games, newGame]);
+    const { supabase } = await import('../supabaseClient');
+    await supabase.from('games').insert([
+      {
+        name: newGame.name,
+        status: newGame.status,
+        timing: newGame.timing
+      }
+    ]);
+    // Refresh games from Supabase
+    const { data } = await supabase.from('games').select('*').order('created_at', { ascending: false });
+    setGames(data || []);
     setNewGame({ name: '', status: 'Active', timing: '' });
   };
+
 
   return (
     <div>
