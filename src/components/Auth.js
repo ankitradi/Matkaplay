@@ -93,7 +93,8 @@ function Auth({ onLogin }) {
         // Use the provided email, but store mobile and name as metadata
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password }, { data: { name, mobile, email } });
         if (signUpError) {
-          setError(signUpError.message);
+          setError('Registration error: ' + signUpError.message + (signUpError.status ? ` (status: ${signUpError.status})` : ''));
+          console.error('Supabase registration error:', signUpError);
           setLoading(false);
           return;
         }
@@ -119,11 +120,13 @@ function Auth({ onLogin }) {
         }
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (signInError) {
-          setError(signInError.message);
+          setError('Login error: ' + signInError.message + (signInError.status ? ` (status: ${signInError.status})` : ''));
+          console.error('Supabase login error:', signInError);
           setLoading(false);
           return;
         }
         setError('');
+        console.log('Supabase login success:', data);
         // Fetch user profile from Supabase
         let userProfile = null;
         let userId = null;
@@ -131,6 +134,7 @@ function Auth({ onLogin }) {
         const { data: authUserData, error: userError } = await supabase.auth.getUser();
         if (userError) {
           setError(userError.message);
+          console.error('Supabase user error:', userError);
           setLoading(false);
           return;
         }
