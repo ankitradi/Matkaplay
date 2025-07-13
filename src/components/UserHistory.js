@@ -63,6 +63,14 @@ export default function UserHistory() {
       setPayments(paymentsData || []);
     }
     fetchUserData();
+    // Real-time subscriptions
+    const { subscribeToTable } = require('../supabaseRealtime');
+    const unsubBets = subscribeToTable('bets', fetchUserData);
+    const unsubPayments = subscribeToTable('wallet_transactions', fetchUserData);
+    return () => {
+      unsubBets();
+      unsubPayments();
+    };
   }, []);
 
   if (!user) {

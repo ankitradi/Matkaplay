@@ -20,6 +20,14 @@ export default function Wallet() {
   useEffect(() => {
     fetchBalance();
     fetchHistory();
+    // Real-time subscriptions
+    const { subscribeToTable } = require('../supabaseRealtime');
+    const unsubUsers = subscribeToTable('users', fetchBalance);
+    const unsubTx = subscribeToTable('wallet_transactions', fetchHistory);
+    return () => {
+      unsubUsers();
+      unsubTx();
+    };
   }, []);
 
   async function handleSubmit(e) {

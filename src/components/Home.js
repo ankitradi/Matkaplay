@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { FaDice } from 'react-icons/fa';
 
 import { useEffect, useState } from 'react';
+import { subscribeToTable } from '../supabaseRealtime';
 
 // ...
 
@@ -17,6 +18,20 @@ async function getGamesFromSupabase() {
   const { data, error } = await supabase.from('games').select('*').eq('status', 'Active').order('created_at', { ascending: false });
   if (error) return [];
   return data || [];
+}
+
+// Real-time fetch hook
+function useRealtimeGames() {
+  const [games, setGames] = useState([]);
+  async function fetchGames() {
+    setGames(await getGamesFromSupabase());
+  }
+  useEffect(() => {
+    fetchGames();
+    const unsubscribe = subscribeToTable('games', fetchGames);
+    return unsubscribe;
+  }, []);
+  return games;
 }
 
 const BgPattern = styled.div`
