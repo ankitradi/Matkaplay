@@ -100,9 +100,15 @@ function Auth({ onLogin }) {
         }
         // Insert user profile in Supabase 'users' table
         if (data?.user) {
-          await supabase.from('users').upsert([
+          const { error: upsertError } = await supabase.from('users').upsert([
             { id: data.user.id, name, email, mobile, wallet: 0, banned: false }
           ], { onConflict: ['id'] });
+          if (upsertError) {
+            setError('Profile creation error: ' + upsertError.message);
+            console.error('Supabase users upsert error:', upsertError);
+            setLoading(false);
+            return;
+          }
         }
         setMode('login');
         setError('Registered! Please check your email to confirm, then login.');
@@ -141,7 +147,24 @@ function Auth({ onLogin }) {
         userId = authUserData?.user?.id || data?.user?.id;
         if (userId) {
           // Only query your custom users table for profile data
-          const { data: profileRows } = await supabase.from('users').select('*').eq('id', userId).single();
+          let { data: profileRows, error: profileError } = await supabase.from('users').select('*').eq('id', userId).single();
+          if (profileError && profileError.code === 'PGRST116') { // Row not found (RLS)
+            // Auto-create user profile if missing
+            const authUser = authUserData?.user;
+            if (authUser) {
+              const { error: upsertError } = await supabase.from('users').upsert([
+                { id: authUser.id, name: authUser.user_metadata?.name || '', email: authUser.email, mobile: authUser.user_metadata?.mobile || '', wallet: 0, banned: false }
+              ], { onConflict: ['id'] });
+              if (upsertError) {
+                setError('Auto-create profile error: ' + upsertError.message);
+                console.error('Supabase users auto-create error:', upsertError);
+                setLoading(false);
+                return;
+              }
+              // Try fetching again
+              ({ data: profileRows } = await supabase.from('users').select('*').eq('id', userId).single());
+            }
+          }
           userProfile = profileRows || null;
         }
         if (onLogin && userProfile) onLogin(userProfile);
