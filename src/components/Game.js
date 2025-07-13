@@ -124,7 +124,7 @@ function Game({ gameName, setScreen, user }) {
     );
   };
 
-  const handleBet = () => {
+  const handleBet = async () => {
     if (!user) {
       setError('Please login to place a bet.');
       return;
@@ -133,39 +133,37 @@ function Game({ gameName, setScreen, user }) {
       setError('Enter a valid amount');
       return;
     }
-    // Fetch latest wallet balance from Supabase
-    (async () => {
-      const { supabase } = await import('../supabaseClient');
-      const authUser = supabase.auth.getUser && (await supabase.auth.getUser()).data.user;
-      if (!authUser) { setError('Please login to place a bet.'); return; }
-      const { data: userProfile } = await supabase.from('users').select('wallet').eq('id', authUser.id).single();
-      const walletBalance = userProfile?.wallet || 0;
-      if (walletBalance === 0) {
-        setError('Insufficient wallet balance. Please deposit funds.');
-        return;
+    const { supabase } = await import('../supabaseClient');
+    const authUser = supabase.auth.getUser && (await supabase.auth.getUser()).data.user;
+    if (!authUser) { setError('Please login to place a bet.'); return; }
+    const { data: userProfile } = await supabase.from('users').select('wallet').eq('id', authUser.id).single();
+    const walletBalance = userProfile?.wallet || 0;
+    if (walletBalance === 0) {
+      setError('Insufficient wallet balance. Please deposit funds.');
+      return;
+    }
+    if (Number(amount) > walletBalance) {
+      setError('Bet amount cannot exceed wallet balance.');
+      return;
+    }
+    if (selectedNumbers.length === 0) {
+      setError('Select at least one number');
+      return;
+    }
+    // Deduct wallet in Supabase and insert bet
+    const newWallet = walletBalance - Number(amount);
+    await supabase.from('users').update({ wallet: newWallet }).eq('id', authUser.id);
+    await supabase.from('bets').insert([
+      {
+        user_id: authUser.id,
+        game_id: null, // TODO: link to actual game id if available
+        amount: Number(amount),
+        numbers: selectedNumbers.sort((a,b)=>a-b).join(','),
+        status: 'Pending'
       }
-      if (Number(amount) > walletBalance) {
-        setError('Bet amount cannot exceed wallet balance.');
-        return;
-      }
-      if (selectedNumbers.length === 0) {
-        setError('Select at least one number');
-        return;
-      }
-      // Deduct wallet in Supabase and insert bet
-      const newWallet = walletBalance - Number(amount);
-      await supabase.from('users').update({ wallet: newWallet }).eq('id', authUser.id);
-      await supabase.from('bets').insert([
-        {
-          user_id: authUser.id,
-          game_id: null, // TODO: link to actual game id if available
-          amount: Number(amount),
-          numbers: selectedNumbers.sort((a,b)=>a-b).join(','),
-          status: 'Pending',
-        }
-      ]);
-      setError('');
-      setScreen('history');
+    ]);
+    setError('');
+    setScreen('history');
   };
 
 
