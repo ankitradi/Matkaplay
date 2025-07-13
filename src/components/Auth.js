@@ -148,13 +148,15 @@ function Auth({ onLogin }) {
         if (userId) {
           // Only query your custom users table for profile data
           let { data: profileRows, error: profileError } = await supabase.from('users').select('*').eq('id', userId).single();
+          console.log('Profile fetch result:', profileRows, 'Profile fetch error:', profileError);
           if (profileError && profileError.code === 'PGRST116') { // Row not found (RLS)
             // Auto-create user profile if missing
             const authUser = authUserData?.user;
             if (authUser) {
-              const { error: upsertError } = await supabase.from('users').upsert([
+              const { error: upsertError, data: upsertData } = await supabase.from('users').upsert([
                 { id: authUser.id, name: authUser.user_metadata?.name || '', email: authUser.email, mobile: authUser.user_metadata?.mobile || '', wallet: 0, banned: false }
               ], { onConflict: ['id'] });
+              console.log('Auto-create profile upsert result:', upsertData, 'Upsert error:', upsertError);
               if (upsertError) {
                 setError('Auto-create profile error: ' + upsertError.message);
                 console.error('Supabase users auto-create error:', upsertError);
@@ -162,7 +164,15 @@ function Auth({ onLogin }) {
                 return;
               }
               // Try fetching again
-              ({ data: profileRows } = await supabase.from('users').select('*').eq('id', userId).single());
+              const { data: retryProfile, error: retryError } = await supabase.from('users').select('*').eq('id', userId).single();
+              console.log('Retry profile fetch result:', retryProfile, 'Retry fetch error:', retryError);
+              profileRows = retryProfile;
+              if (retryError) {
+                setError('Profile fetch after create error: ' + retryError.message);
+                console.error('Profile fetch after create error:', retryError);
+                setLoading(false);
+                return;
+              }
             }
           }
           userProfile = profileRows || null;
