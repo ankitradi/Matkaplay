@@ -126,8 +126,18 @@ function Auth({ onLogin }) {
         setError('');
         // Fetch user profile from Supabase
         let userProfile = null;
-        if (data?.user) {
-          const { data: profileRows } = await supabase.from('users').select('*').eq('id', data.user.id).single();
+        let userId = null;
+        // Use Supabase Auth to get the logged-in user
+        const { data: authUserData, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          setError(userError.message);
+          setLoading(false);
+          return;
+        }
+        userId = authUserData?.user?.id || data?.user?.id;
+        if (userId) {
+          // Only query your custom users table for profile data
+          const { data: profileRows } = await supabase.from('users').select('*').eq('id', userId).single();
           userProfile = profileRows || null;
         }
         if (onLogin && userProfile) onLogin(userProfile);
