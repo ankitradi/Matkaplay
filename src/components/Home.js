@@ -216,18 +216,10 @@ const HeroSubtitle = styled.div`
 import Auth from './Auth';
 
 function Home({ setScreen, setSelectedGame, user }) {
-  const [games, setGames] = useState([]);
-
-  useEffect(() => {
-    async function fetchGames() {
-      const games = await getGamesFromSupabase();
-      setGames(games);
-    }
-    fetchGames();
-  }, [user]);
+  const games = useRealtimeGames();
 
   return (
-    <>
+    <div>
       <BgPattern />
       <HeroBanner>
         <HeroTitle>Welcome to Matka Play</HeroTitle>
@@ -236,30 +228,35 @@ function Home({ setScreen, setSelectedGame, user }) {
         </HeroSubtitle>
       </HeroBanner>
 
-      <Grid>
-        {games.map(game => (
-          <Card key={game.name}>
-            {game.name}
-            <br />
-            <PlayButton onClick={() => {
-              if (user) {
-                setSelectedGame(game.name);
-                setScreen('game');
-              }
-            }}>
-              <FaDice style={{marginRight: 3}} /> Play Now
-            </PlayButton>
+      {games.length === 0 ? (
+        <div style={{color:'#ffe066',textAlign:'center',marginTop:'2rem'}}>No games available.</div>
+      ) : (
+        <Grid>
+          {games.map((game) => (
+            <Card key={game.id || game.name}>
+              <div><b>{game.name}</b></div>
+              <div>Status: {game.status}</div>
+              <div>Timing: {game.timing}</div>
+              <PlayButton onClick={() => {
+                if (user) {
+                  setSelectedGame(game.name);
+                  setScreen('game');
+                }
+              }}>
+                <FaDice style={{marginRight: 3}} /> Play Now
+              </PlayButton>
+            </Card>
+          ))}
+          {/* Only show Leaderboard and How to Play as extra cards */}
+          <Card onClick={() => setScreen('leaderboard')} style={{cursor: 'pointer'}}>
+            🏆 Leaderboard
           </Card>
-        ))}
-        {/* Only show Leaderboard and How to Play as extra cards */}
-        <Card onClick={() => setScreen('leaderboard')} style={{cursor: 'pointer'}}>
-          🏆 Leaderboard
-        </Card>
-        <Card onClick={() => setScreen('tutorial')} style={{cursor: 'pointer'}}>
-          📖 How to Play
-        </Card>
-      </Grid>
-    </>
+          <Card onClick={() => setScreen('tutorial')} style={{cursor: 'pointer'}}>
+            📖 How to Play
+          </Card>
+        </Grid>
+      )}
+    </div>
   );
 }
 
